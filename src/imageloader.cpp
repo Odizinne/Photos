@@ -53,12 +53,27 @@ void ImageLoader::rotateAndSaveImageAsync(const QString &filePath, int angle)
 {
     {
         QMutexLocker locker(&m_operationsMutex);
+
+        // Accumulate the rotation instead of starting multiple operations
+        m_pendingRotations[filePath] += angle;
+
+        // If there's already an operation for this file, just return
+        // The accumulated rotation will be applied when the current operation completes
+        if (m_pendingRotations[filePath] != angle) {
+            return;
+        }
+
         m_pendingOperations++;
     }
 
     // Run rotation in background thread
-    QFuture<bool> future = QtConcurrent::run([this, filePath, angle]() {
-        return performRotation(filePath, angle);
+    QFuture<bool> future = QtConcurrent::run([this, filePath]() {
+        int totalAngle;
+        {
+            QMutexLocker locker(&m_operationsMutex);
+            totalAngle = m_pendingRotations[filePath];
+        }
+        return performRotation(filePath, totalAngle);
     });
 
     // Watch for completion
@@ -67,9 +82,13 @@ void ImageLoader::rotateAndSaveImageAsync(const QString &filePath, int angle)
     connect(watcher, &QFutureWatcher<bool>::finished, [this, watcher, filePath]() {
         bool success = watcher->result();
 
+        int appliedRotation;
         {
             QMutexLocker locker(&m_operationsMutex);
+            appliedRotation = m_pendingRotations[filePath];
+            m_pendingRotations.remove(filePath);
             m_pendingOperations--;
+
             if (m_pendingOperations == 0) {
                 emit allOperationsComplete();
             }
@@ -77,9 +96,27 @@ void ImageLoader::rotateAndSaveImageAsync(const QString &filePath, int angle)
 
         emit imageRotationComplete(filePath, success);
         watcher->deleteLater();
+
+        // If there were additional rotations requested while processing, handle them
+        {
+            QMutexLocker locker(&m_operationsMutex);
+            if (success && m_pendingRotations.contains(filePath)) {
+                // There are more rotations pending for this file
+                QMetaObject::invokeMethod(this, "rotateAndSaveImageAsync",
+                                          Qt::QueuedConnection,
+                                          Q_ARG(QString, filePath),
+                                          Q_ARG(int, 0)); // Trigger processing of accumulated rotation
+            }
+        }
     });
 
     watcher->setFuture(future);
+}
+
+void ImageLoader::cancelPendingRotations(const QString &filePath)
+{
+    QMutexLocker locker(&m_operationsMutex);
+    m_pendingRotations.remove(filePath);
 }
 
 bool ImageLoader::hasPendingOperations() const

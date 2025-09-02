@@ -32,6 +32,7 @@ public:
     Q_INVOKABLE bool hasPendingOperations() const;
     Q_INVOKABLE void waitForPendingOperations();
     Q_INVOKABLE bool deleteImage(const QString &filePath);
+    Q_INVOKABLE void cancelPendingRotations(const QString &filePath);
 
 signals:
     void imageRotationComplete(const QString &filePath, bool success);
@@ -44,6 +45,9 @@ private:
     QString m_initialImagePath;
     mutable QMutex m_operationsMutex;
     int m_pendingOperations = 0;
+
+    // Track accumulated rotation per file
+    QHash<QString, int> m_pendingRotations;
 
     // Helper function for threaded rotation
     static bool performRotation(const QString &filePath, int angle);

@@ -110,26 +110,23 @@ ApplicationWindow {
                 wrapMode: Text.WordWrap
                 width: parent.width
             }
+        }
 
-            Row {
-                spacing: 10
-                anchors.right: parent.right
+        footer: DialogButtonBox {
+            Button {
+                text: "Cancel"
+                DialogButtonBox.buttonRole: DialogButtonBox.RejectRole
+            }
 
-                Button {
-                    text: "Cancel"
-                    onClicked: deleteConfirmDialog.close()
-                }
-
-                Button {
-                    text: "Delete"
-                    highlighted: true
-                    onClicked: {
-                        deleteConfirmDialog.close()
-                        window.deleteCurrentImage()
-                    }
-                }
+            Button {
+                text: "Delete"
+                highlighted: true
+                DialogButtonBox.buttonRole: DialogButtonBox.AcceptRole
             }
         }
+
+        onAccepted: window.deleteCurrentImage()
+        onRejected: close()
     }
 
     header: ToolBar {
@@ -192,8 +189,34 @@ ApplicationWindow {
     Flickable {
         id: imageFlickable
         anchors.fill: parent
-        contentWidth: imageContainer.width
-        contentHeight: imageContainer.height
+
+        // Fix: Calculate content dimensions based on rotation
+        contentWidth: {
+            if (!displayImage.implicitWidth || !displayImage.implicitHeight) return width
+
+            var imgW = displayImage.implicitWidth * imageContainer.scale
+            var imgH = displayImage.implicitHeight * imageContainer.scale
+
+            // When rotated 90° or 270°, width becomes height
+            if (Math.abs(imageRotation) % 180 !== 0) {
+                return Math.max(imgH, width)
+            }
+            return Math.max(imgW, width)
+        }
+
+        contentHeight: {
+            if (!displayImage.implicitWidth || !displayImage.implicitHeight) return height
+
+            var imgW = displayImage.implicitWidth * imageContainer.scale
+            var imgH = displayImage.implicitHeight * imageContainer.scale
+
+            // When rotated 90° or 270°, height becomes width
+            if (Math.abs(imageRotation) % 180 !== 0) {
+                return Math.max(imgW, height)
+            }
+            return Math.max(imgH, height)
+        }
+
         clip: true
         boundsBehavior: Flickable.StopAtBounds
 
@@ -204,12 +227,19 @@ ApplicationWindow {
         onWidthChanged: updateMinScale()
         onHeightChanged: updateMinScale()
 
+        TapHandler {
+            acceptedButtons: Qt.LeftButton
+            onDoubleTapped: window.toggleFullscreen()
+            enabled: Common.currentImagePath !== ""
+        }
+
         function updateMinScale() {
             if (displayImage.implicitWidth > 0 && displayImage.implicitHeight > 0) {
                 var imgWidth = displayImage.implicitWidth
                 var imgHeight = displayImage.implicitHeight
 
-                if (imageRotation % 180 !== 0) {
+                // For min scale calculation, use rotated dimensions
+                if (Math.abs(imageRotation) % 180 !== 0) {
                     var temp = imgWidth
                     imgWidth = imgHeight
                     imgHeight = temp
@@ -240,8 +270,9 @@ ApplicationWindow {
             id: imageContainer
             anchors.centerIn: parent
             scale: 1.0
-            width: Math.max(displayImage.implicitWidth * scale, imageFlickable.width)
-            height: Math.max(displayImage.implicitHeight * scale, imageFlickable.height)
+            // Keep original dimensions - rotation is visual only
+            width: displayImage.implicitWidth
+            height: displayImage.implicitHeight
 
             Behavior on scale {
                 NumberAnimation {
@@ -271,9 +302,12 @@ ApplicationWindow {
 
                         imageFlickable.imageRotation = 0
 
-                        imageFlickable.updateMinScale()
+                        // Ensure proper initialization sequence
+                        Qt.callLater(function() {
+                            imageFlickable.updateMinScale()
+                            imageFlickable.fitToWindow()
+                        })
 
-                        imageFlickable.fitToWindow()
                         window.title = Common.getFileName(Common.currentImagePath) + " - Image Viewer"
                     } else if (status === Image.Error) {
                         console.log("Error loading image:", Common.currentImagePath)
@@ -315,7 +349,8 @@ ApplicationWindow {
             var imgWidth = displayImage.implicitWidth
             var imgHeight = displayImage.implicitHeight
 
-            if (imageRotation % 180 !== 0) {
+            // Consider rotation for fit calculation
+            if (Math.abs(imageRotation) % 180 !== 0) {
                 var temp = imgWidth
                 imgWidth = imgHeight
                 imgHeight = temp
@@ -334,10 +369,6 @@ ApplicationWindow {
 
     footer: ToolBar {
         visible: Common.currentImagePath !== ""
-        //background: Rectangle {
-        //    implicitHeight: 48
-        //    color: Universal.background
-        //}
         RowLayout {
             anchors.fill: parent
             anchors.leftMargin: 10
@@ -355,7 +386,9 @@ ApplicationWindow {
                       "No image loaded"
             }
 
-            ToolSeparator {}
+            ToolSeparator {
+                opacity: 0.5
+            }
 
             IconLabel {
                 icon.source: "qrc:/icons/disk.svg"
@@ -370,19 +403,10 @@ ApplicationWindow {
                       ""
             }
 
-            ToolSeparator {}
-
-            Label {
-                text: Common.currentImagePath !== "" && imageFlickable.imageRotation !== 0 ?
-                      "Rotation: " + Math.round(imageFlickable.imageRotation) + "°" :
-                      ""
-                visible: text !== ""
-            }
-
             Item { Layout.fillWidth: true }
 
             ToolButton {
-                icon.source: "qrc:/icons/fit_screen.svg"
+                icon.source: "qrc:/icons/fit.svg"
                 Layout.preferredWidth: height
                 onClicked: imageFlickable.fitToWindow()
                 enabled: Common.currentImagePath !== ""
