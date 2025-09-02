@@ -16,6 +16,22 @@ ApplicationWindow {
     Universal.theme: Universal.System
     Universal.accent: palette.highlight
 
+    onWidthChanged: {
+        Common.enableScaleAnimation = false
+        imageFlickable.updateMinScale()
+        Qt.callLater(function() {
+            Common.enableScaleAnimation = true
+        })
+    }
+
+    onHeightChanged: {
+        Common.enableScaleAnimation = false
+        imageFlickable.updateMinScale()
+        Qt.callLater(function() {
+            Common.enableScaleAnimation = true
+        })
+    }
+
     Shortcut {
         sequence: "Esc"
         enabled: window.visibility === Window.FullScreen
