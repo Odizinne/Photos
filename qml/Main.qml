@@ -553,10 +553,18 @@ ApplicationWindow {
             }
 
             Label {
+                id: percentageZoomLabel
                 text: Common.currentImagePath !== "" ?
                       Math.round(imageContainer.scale * 100) + "%" :
                       ""
+                Layout.preferredWidth: fontMetrics.advanceWidth("888%")
+                horizontalAlignment: Text.AlignHCenter
+                FontMetrics {
+                    id: fontMetrics
+                    font: percentageZoomLabel.font
+                }
             }
+
 
             ToolButton {
                 icon.source: "qrc:/icons/fullscreen.svg"
@@ -624,8 +632,15 @@ ApplicationWindow {
 
     function rotateImage(angle) {
         if (Common.currentImagePath !== "") {
+            Common.enableScaleAnimation = false
+
             imageFlickable.imageRotation = (imageFlickable.imageRotation + angle + 360) % 360
             imageFlickable.fitToWindow()
+
+            Qt.callLater(function() {
+                Common.enableScaleAnimation = true
+            })
+
             ImageLoader.rotateAndSaveImageAsync(Common.currentImagePath, angle)
         }
     }
