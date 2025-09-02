@@ -23,10 +23,19 @@ set(SOURCES
     src/main.cpp
 )
 
+set(APP_ICON_PATH "${CMAKE_CURRENT_SOURCE_DIR}/resources/icons/icon.ico")
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/windows_metadata.rc.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/windows_metadata.rc"
+    @ONLY
+)
+
+
 qt_add_executable(${CMAKE_PROJECT_NAME}
     ${SOURCES}
     ${HEADERS}
     resources/icons/icons.qrc
+    "${CMAKE_CURRENT_BINARY_DIR}/windows_metadata.rc"
 )
 
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE

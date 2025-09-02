@@ -113,6 +113,112 @@ void ImageLoader::rotateAndSaveImageAsync(const QString &filePath, int angle)
     watcher->setFuture(future);
 }
 
+void ImageLoader::setDesktopWallpaperAsync(const QString &filePath)
+{
+    {
+        QMutexLocker locker(&m_operationsMutex);
+        m_pendingOperations++;
+    }
+
+    // Run wallpaper setting in background thread
+    QFuture<bool> future = QtConcurrent::run([filePath]() {
+        return performSetDesktopWallpaper(filePath);
+    });
+
+    // Watch for completion
+    QFutureWatcher<bool> *watcher = new QFutureWatcher<bool>(this);
+
+    connect(watcher, &QFutureWatcher<bool>::finished, [this, watcher]() {
+        bool success = watcher->result();
+
+        {
+            QMutexLocker locker(&m_operationsMutex);
+            m_pendingOperations--;
+
+            if (m_pendingOperations == 0) {
+                emit allOperationsComplete();
+            }
+        }
+
+        emit wallpaperSetComplete("desktop", success);
+        watcher->deleteLater();
+    });
+
+    watcher->setFuture(future);
+}
+
+void ImageLoader::setLockScreenWallpaperAsync(const QString &filePath)
+{
+    {
+        QMutexLocker locker(&m_operationsMutex);
+        m_pendingOperations++;
+    }
+
+    // Run wallpaper setting in background thread
+    QFuture<bool> future = QtConcurrent::run([filePath]() {
+        return performSetLockScreenWallpaper(filePath);
+    });
+
+    // Watch for completion
+    QFutureWatcher<bool> *watcher = new QFutureWatcher<bool>(this);
+
+    connect(watcher, &QFutureWatcher<bool>::finished, [this, watcher]() {
+        bool success = watcher->result();
+
+        {
+            QMutexLocker locker(&m_operationsMutex);
+            m_pendingOperations--;
+
+            if (m_pendingOperations == 0) {
+                emit allOperationsComplete();
+            }
+        }
+
+        emit wallpaperSetComplete("lockscreen", success);
+        watcher->deleteLater();
+    });
+
+    watcher->setFuture(future);
+}
+
+void ImageLoader::setBothWallpapersAsync(const QString &filePath)
+{
+    {
+        QMutexLocker locker(&m_operationsMutex);
+        m_pendingOperations++;
+    }
+
+    // Run wallpaper setting in background thread
+    QFuture<QPair<bool, bool>> future = QtConcurrent::run([filePath]() {
+        return performSetBothWallpapers(filePath);
+    });
+
+    // Watch for completion
+    QFutureWatcher<QPair<bool, bool>> *watcher = new QFutureWatcher<QPair<bool, bool>>(this);
+
+    connect(watcher, &QFutureWatcher<QPair<bool, bool>>::finished, [this, watcher]() {
+        QPair<bool, bool> results = watcher->result();
+        bool desktopSuccess = results.first;
+        bool lockscreenSuccess = results.second;
+
+        {
+            QMutexLocker locker(&m_operationsMutex);
+            m_pendingOperations--;
+
+            if (m_pendingOperations == 0) {
+                emit allOperationsComplete();
+            }
+        }
+
+        emit wallpaperSetComplete("desktop", desktopSuccess);
+        emit wallpaperSetComplete("lockscreen", lockscreenSuccess);
+        emit wallpaperSetComplete("both", desktopSuccess && lockscreenSuccess);
+        watcher->deleteLater();
+    });
+
+    watcher->setFuture(future);
+}
+
 void ImageLoader::cancelPendingRotations(const QString &filePath)
 {
     QMutexLocker locker(&m_operationsMutex);
@@ -192,4 +298,63 @@ bool ImageLoader::performRotation(const QString &filePath, int angle)
     }
 
     return success;
+}
+
+bool ImageLoader::performSetDesktopWallpaper(const QString &filePath)
+{
+#ifdef Q_OS_WIN
+    QString localPath = filePath;
+    if (localPath.startsWith("file://")) {
+        localPath = QUrl(localPath).toLocalFile();
+    }
+
+    QFileInfo fileInfo(localPath);
+    if (!fileInfo.exists()) {
+        return false;
+    }
+
+    std::wstring wPath = localPath.toStdWString();
+    return SystemParametersInfoW(SPI_SETDESKWALLPAPER, 0,
+                                 (void*)wPath.c_str(),
+                                 SPIF_UPDATEINIFILE | SPIF_SENDCHANGE);
+#else
+    Q_UNUSED(filePath)
+    return false; // Not supported on this platform
+#endif
+}
+
+bool ImageLoader::performSetLockScreenWallpaper(const QString &filePath)
+{
+#ifdef Q_OS_WIN
+    QString localPath = filePath;
+    if (localPath.startsWith("file://")) {
+        localPath = QUrl(localPath).toLocalFile();
+    }
+
+    QFileInfo fileInfo(localPath);
+    if (!fileInfo.exists()) {
+        return false;
+    }
+
+    // Windows 10/11 lock screen wallpaper setting
+    QSettings settings("HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\PersonalizationCSP",
+                       QSettings::NativeFormat);
+
+    settings.setValue("LockScreenImagePath", localPath);
+    settings.setValue("LockScreenImageUrl", localPath);
+    settings.setValue("LockScreenImageStatus", 1);
+
+    return true;
+#else
+    Q_UNUSED(filePath)
+    return false; // Not supported on this platform
+#endif
+}
+
+QPair<bool, bool> ImageLoader::performSetBothWallpapers(const QString &filePath)
+{
+    bool desktopSuccess = performSetDesktopWallpaper(filePath);
+    bool lockscreenSuccess = performSetLockScreenWallpaper(filePath);
+
+    return QPair<bool, bool>(desktopSuccess, lockscreenSuccess);
 }

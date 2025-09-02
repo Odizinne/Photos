@@ -10,6 +10,8 @@ ApplicationWindow {
     visible: true
     width: 1000
     height: 700
+    minimumWidth: 1000
+    minimumHeight: 700
     title: "Photos"
     Universal.theme: Universal.System
     Universal.accent: palette.highlight
@@ -226,6 +228,34 @@ ApplicationWindow {
 
         onWidthChanged: updateMinScale()
         onHeightChanged: updateMinScale()
+        ContextMenu.menu: Menu {
+            opacity: Common.currentImagePath !== "" ? 1 : 0
+            MenuItem {
+                text: "Set as desktop wallpaper"
+                enabled: Common.currentImagePath !== ""
+                onTriggered: ImageLoader.setDesktopWallpaperAsync(Common.currentImagePath)
+            }
+
+            MenuItem {
+                text: "Set as lockscreen wallpaper"
+                enabled: Common.currentImagePath !== ""
+                onTriggered: ImageLoader.setLockScreenWallpaperAsync(Common.currentImagePath)
+            }
+
+            MenuItem {
+                text: "Set both wallpapers"
+                enabled: Common.currentImagePath !== ""
+                onTriggered: ImageLoader.setBothWallpapersAsync(Common.currentImagePath)
+            }
+
+            MenuSeparator {}
+
+            MenuItem {
+                text: "Fit to window"
+                enabled: Common.currentImagePath !== ""
+                onTriggered: imageFlickable.fitToWindow()
+            }
+        }
 
         TapHandler {
             acceptedButtons: Qt.LeftButton

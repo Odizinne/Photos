@@ -1,6 +1,6 @@
-#define AppName       "QontrolPanel"
-#define AppSourceDir  "..\build\QontrolPanel\"
-#define AppExeName    "QontrolPanel.exe"
+#define AppName       "Photos"
+#define AppSourceDir  "..\build\Photos\"
+#define AppExeName    "Photos.exe"
 #define                MajorVersion    
 #define                MinorVersion    
 #define                RevisionVersion    
@@ -8,7 +8,7 @@
 #define TempVersion    GetVersionComponents(AppSourceDir + "bin\" + AppExeName, MajorVersion, MinorVersion, RevisionVersion, BuildVersion)
 #define AppVersion     str(MajorVersion) + "." + str(MinorVersion) + "." + str(RevisionVersion)
 #define AppPublisher  "Odizinne"
-#define AppURL        "https://github.com/Odizinne/QontrolPanel"
+#define AppURL        "https://github.com/Odizinne/Photos"
 #define AppIcon       "..\Resources\icons\icon.ico"
 #define CurrentYear   GetDateTimeString('yyyy','','')
 
@@ -47,7 +47,7 @@ DefaultGroupName={#AppName}
 DefaultDirName={localappdata}\Programs\{#AppName}
 
 PrivilegesRequired=lowest
-OutputBaseFilename=QontrolPanel_installer
+OutputBaseFilename=Photos_installer
 Compression=lzma
 SolidCompression=yes
 UsedUserAreasWarning=no

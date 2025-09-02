@@ -15,6 +15,13 @@
 #include <QFutureWatcher>
 #include <QtConcurrent/QtConcurrentRun>
 #include <QFile>
+#include <QSettings>
+#include <QPair>
+
+#ifdef Q_OS_WIN
+#include <Windows.h>
+#include <ShlObj.h>
+#endif
 
 class ImageLoader : public QObject
 {
@@ -33,10 +40,14 @@ public:
     Q_INVOKABLE void waitForPendingOperations();
     Q_INVOKABLE bool deleteImage(const QString &filePath);
     Q_INVOKABLE void cancelPendingRotations(const QString &filePath);
+    Q_INVOKABLE void setDesktopWallpaperAsync(const QString &filePath);
+    Q_INVOKABLE void setLockScreenWallpaperAsync(const QString &filePath);
+    Q_INVOKABLE void setBothWallpapersAsync(const QString &filePath);
 
 signals:
     void imageRotationComplete(const QString &filePath, bool success);
     void allOperationsComplete();
+    void wallpaperSetComplete(const QString &type, bool success);
 
 private:
     explicit ImageLoader(QObject *parent = nullptr);
@@ -51,6 +62,11 @@ private:
 
     // Helper function for threaded rotation
     static bool performRotation(const QString &filePath, int angle);
+
+    // Helper functions for threaded wallpaper operations
+    static bool performSetDesktopWallpaper(const QString &filePath);
+    static bool performSetLockScreenWallpaper(const QString &filePath);
+    static QPair<bool, bool> performSetBothWallpapers(const QString &filePath);
 };
 
 #endif // IMAGELOADER_H
