@@ -7,6 +7,7 @@ Item {
     property real imageWidth: 0
     property real imageHeight: 0
     property int imageFileSize: 0
+    property bool enableScaleAnimation: false
 
     function loadImage(imagePath) {
         currentImagePath = imagePath

@@ -358,3 +358,33 @@ QPair<bool, bool> ImageLoader::performSetBothWallpapers(const QString &filePath)
 
     return QPair<bool, bool>(desktopSuccess, lockscreenSuccess);
 }
+
+void ImageLoader::copyImageToClipboard(const QString &filePath)
+{
+    QString localPath = filePath;
+    if (localPath.startsWith("file://")) {
+        localPath = QUrl(localPath).toLocalFile();
+    }
+
+    QFileInfo fileInfo(localPath);
+    if (!fileInfo.exists() || !fileInfo.isFile()) {
+        return;
+    }
+
+    QPixmap pixmap(localPath);
+    if (!pixmap.isNull()) {
+        QClipboard *clipboard = QGuiApplication::clipboard();
+        clipboard->setPixmap(pixmap);
+    }
+}
+
+void ImageLoader::copyPathToClipboard(const QString &filePath)
+{
+    QString localPath = filePath;
+    if (localPath.startsWith("file://")) {
+        localPath = QUrl(localPath).toLocalFile();
+    }
+
+    QClipboard *clipboard = QGuiApplication::clipboard();
+    clipboard->setText(localPath);
+}

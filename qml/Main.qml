@@ -185,6 +185,7 @@ ApplicationWindow {
             text: Common.currentImagePath !== "" ? Common.getFileName(Common.currentImagePath) : ""
             width: Math.min(300, implicitWidth)
             elide: Text.ElideMiddle
+            opacity: 0.5
         }
     }
 
@@ -231,6 +232,18 @@ ApplicationWindow {
         ContextMenu.menu: Menu {
             opacity: Common.currentImagePath !== "" ? 1 : 0
             MenuItem {
+                text: "Copy image"
+                enabled: Common.currentImagePath !== ""
+                onTriggered: ImageLoader.copyImageToClipboard(Common.currentImagePath)
+            }
+
+            MenuItem {
+                text: "Copy image path"
+                enabled: Common.currentImagePath !== ""
+                onTriggered: ImageLoader.copyPathToClipboard(Common.currentImagePath)
+            }
+
+            MenuItem {
                 text: "Set as desktop wallpaper"
                 enabled: Common.currentImagePath !== ""
                 onTriggered: ImageLoader.setDesktopWallpaperAsync(Common.currentImagePath)
@@ -262,6 +275,56 @@ ApplicationWindow {
             onDoubleTapped: window.toggleFullscreen()
             enabled: Common.currentImagePath !== ""
         }
+
+        DropArea {
+                id: dropArea
+                anchors.fill: parent
+
+                onEntered: function(drag) {
+                    // Check if the dragged item contains files
+                    if (drag.hasUrls) {
+                        var supportedFormats = [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".tif", ".webp"]
+                        var hasImageFile = false
+
+                        for (var i = 0; i < drag.urls.length; i++) {
+                            var url = drag.urls[i].toString().toLowerCase()
+                            for (var j = 0; j < supportedFormats.length; j++) {
+                                if (url.endsWith(supportedFormats[j])) {
+                                    hasImageFile = true
+                                    break
+                                }
+                            }
+                            if (hasImageFile) break
+                        }
+
+                        if (hasImageFile) {
+                            drag.accept(Qt.CopyAction)
+                        } else {
+                            drag.accepted = false
+                        }
+                    }
+                }
+
+                onDropped: function(drop) {
+                    if (drop.hasUrls && drop.urls.length > 0) {
+                        var supportedFormats = [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".tif", ".webp"]
+
+                        // Find the first supported image file
+                        for (var i = 0; i < drop.urls.length; i++) {
+                            var url = drop.urls[i].toString().toLowerCase()
+                            for (var j = 0; j < supportedFormats.length; j++) {
+                                if (url.endsWith(supportedFormats[j])) {
+                                    // Load the first supported image file found
+                                    Common.loadImage(drop.urls[i])
+                                    drop.accept(Qt.CopyAction)
+                                    return
+                                }
+                            }
+                        }
+                    }
+                    drop.accepted = false
+                }
+            }
 
         function updateMinScale() {
             if (displayImage.implicitWidth > 0 && displayImage.implicitHeight > 0) {
@@ -305,6 +368,7 @@ ApplicationWindow {
             height: displayImage.implicitHeight
 
             Behavior on scale {
+                enabled: Common.enableScaleAnimation
                 NumberAnimation {
                     duration: 200
                     easing.type: Easing.OutCubic
@@ -318,15 +382,11 @@ ApplicationWindow {
                 fillMode: Image.PreserveAspectFit
                 rotation: imageFlickable.imageRotation
 
-                Behavior on rotation {
-                    NumberAnimation {
-                        duration: 300
-                        easing.type: Easing.OutCubic
-                    }
-                }
-
                 onStatusChanged: {
                     if (status === Image.Ready) {
+                        // Disable animations before any scale changes
+                        window.Common.enableScaleAnimation = false
+
                         Common.imageWidth = implicitWidth
                         Common.imageHeight = implicitHeight
 
@@ -336,6 +396,8 @@ ApplicationWindow {
                         Qt.callLater(function() {
                             imageFlickable.updateMinScale()
                             imageFlickable.fitToWindow()
+                            // Re-enable scale animations after initial setup
+                            window.Common.enableScaleAnimation = true
                         })
 
                         window.title = Common.getFileName(Common.currentImagePath) + " - Image Viewer"
@@ -540,6 +602,9 @@ ApplicationWindow {
             var success = ImageLoader.deleteImage(Common.currentImagePath)
 
             if (success) {
+                // Disable animations before clearing
+                Common.enableScaleAnimation = false
+
                 Common.currentImagePath = ""
                 Common.imageFileSize = 0
                 Common.imageWidth = 0

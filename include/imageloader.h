@@ -17,6 +17,8 @@
 #include <QFile>
 #include <QSettings>
 #include <QPair>
+#include <QClipboard>
+#include <QMimeData>
 
 #ifdef Q_OS_WIN
 #include <Windows.h>
@@ -43,6 +45,8 @@ public:
     Q_INVOKABLE void setDesktopWallpaperAsync(const QString &filePath);
     Q_INVOKABLE void setLockScreenWallpaperAsync(const QString &filePath);
     Q_INVOKABLE void setBothWallpapersAsync(const QString &filePath);
+    Q_INVOKABLE void copyImageToClipboard(const QString &filePath);
+    Q_INVOKABLE void copyPathToClipboard(const QString &filePath);
 
 signals:
     void imageRotationComplete(const QString &filePath, bool success);
