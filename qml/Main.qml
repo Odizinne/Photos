@@ -154,12 +154,13 @@ ApplicationWindow {
             color: Universal.background
         }
 
-        Button {
+        ToolButton {
             id: openButton
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
-            highlighted: true
             height: 40
+            icon.source: "qrc:/icons/file.svg"
+            Universal.foreground: Universal.accent
             text: "Open image"
             onClicked: fileDialog.open()
         }

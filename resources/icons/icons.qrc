@@ -9,6 +9,7 @@
         <file>zoom_out.svg</file>
         <file>res.svg</file>
         <file>fit.svg</file>
+        <file>file.svg</file>
         <file>icon.png</file>
     </qresource>
 </RCC>
