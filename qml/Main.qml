@@ -230,6 +230,39 @@ ApplicationWindow {
         onWidthChanged: updateMinScale()
         onHeightChanged: updateMinScale()
         ContextMenu.menu: Menu {
+            enter: Transition {
+                NumberAnimation {
+                    property: "opacity"
+                    from: 0
+                    to: 1
+                    duration: 150
+                    easing.type: Easing.OutQuad
+                }
+                NumberAnimation {
+                    property: "scale"
+                    from: 0.95
+                    to: 1.0
+                    duration: 150
+                    easing.type: Easing.OutQuad
+                }
+            }
+
+            exit: Transition {
+                NumberAnimation {
+                    property: "opacity"
+                    from: 1
+                    to: 0
+                    duration: 100
+                    easing.type: Easing.InQuad
+                }
+                NumberAnimation {
+                    property: "scale"
+                    from: 1.0
+                    to: 0.95
+                    duration: 100
+                    easing.type: Easing.InQuad
+                }
+            }
             opacity: Common.currentImagePath !== "" ? 1 : 0
             MenuItem {
                 text: "Copy image"
