@@ -19,6 +19,9 @@
 #include <QPair>
 #include <QClipboard>
 #include <QMimeData>
+#include <QStandardPaths>
+#include <QDateTime>
+#include <QDir>
 
 #ifdef Q_OS_WIN
 #include <Windows.h>
@@ -47,6 +50,7 @@ public:
     Q_INVOKABLE void setBothWallpapersAsync(const QString &filePath);
     Q_INVOKABLE void copyImageToClipboard(const QString &filePath);
     Q_INVOKABLE void copyPathToClipboard(const QString &filePath);
+    Q_INVOKABLE QString pasteImageFromClipboard();
 
 signals:
     void imageRotationComplete(const QString &filePath, bool success);
@@ -61,13 +65,10 @@ private:
     mutable QMutex m_operationsMutex;
     int m_pendingOperations = 0;
 
-    // Track accumulated rotation per file
     QHash<QString, int> m_pendingRotations;
 
-    // Helper function for threaded rotation
     static bool performRotation(const QString &filePath, int angle);
 
-    // Helper functions for threaded wallpaper operations
     static bool performSetDesktopWallpaper(const QString &filePath);
     static bool performSetLockScreenWallpaper(const QString &filePath);
     static QPair<bool, bool> performSetBothWallpapers(const QString &filePath);

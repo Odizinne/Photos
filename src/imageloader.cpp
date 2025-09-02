@@ -388,3 +388,39 @@ void ImageLoader::copyPathToClipboard(const QString &filePath)
     QClipboard *clipboard = QGuiApplication::clipboard();
     clipboard->setText(localPath);
 }
+
+QString ImageLoader::pasteImageFromClipboard()
+{
+    QClipboard *clipboard = QGuiApplication::clipboard();
+    const QMimeData *mimeData = clipboard->mimeData();
+
+    if (mimeData->hasImage()) {
+        QPixmap pixmap = clipboard->pixmap();
+        if (!pixmap.isNull()) {
+            // Save to temp file
+            QString tempDir = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
+            QString fileName = QString("clipboard_image_%1.png").arg(QDateTime::currentMSecsSinceEpoch());
+            QString filePath = QDir(tempDir).absoluteFilePath(fileName);
+
+            if (pixmap.save(filePath)) {
+                return QUrl::fromLocalFile(filePath).toString();
+            }
+        }
+    }
+    else if (mimeData->hasUrls()) {
+        // Check if clipboard has image file paths
+        QList<QUrl> urls = mimeData->urls();
+        QStringList supportedFormats = {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".tif", ".webp"};
+
+        for (const QUrl &url : urls) {
+            QString path = url.toString().toLower();
+            for (const QString &format : supportedFormats) {
+                if (path.endsWith(format)) {
+                    return url.toString();
+                }
+            }
+        }
+    }
+
+    return QString(); // No valid image found
+}

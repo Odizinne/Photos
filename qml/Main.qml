@@ -27,6 +27,22 @@ ApplicationWindow {
         onActivated: window.toggleFullscreen()
     }
 
+    Shortcut {
+        sequence: StandardKey.Open
+        onActivated: fileDialog.open()
+    }
+
+    Shortcut {
+        sequences: [StandardKey.Copy]
+        enabled: Common.currentImagePath !== ""
+        onActivated: ImageLoader.copyImageToClipboard(Common.currentImagePath)
+    }
+
+    Shortcut {
+        sequences: [StandardKey.Paste]
+        onActivated: window.pasteImageFromClipboard()
+    }
+
     onClosing: function(close) {
         if (ImageLoader.hasPendingOperations()) {
             close.accepted = false // Don't close yet
@@ -675,6 +691,13 @@ ApplicationWindow {
             })
 
             ImageLoader.rotateAndSaveImageAsync(Common.currentImagePath, angle)
+        }
+    }
+
+    function pasteImageFromClipboard() {
+        var imagePath = ImageLoader.pasteImageFromClipboard()
+        if (imagePath !== "") {
+            Common.loadImage(imagePath)
         }
     }
 }
