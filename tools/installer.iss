@@ -13,7 +13,7 @@
 #define CurrentYear   GetDateTimeString('yyyy','','')
 
 [Setup]
-AppId={{8A9C6942-5CA3-4A02-B701-E7B4E862D635}}
+AppId={{99888fa8-8159-47d8-b610-6d3f80b5ae16}}
 AppName={#AppName}
 AppVersion={#AppVersion}
 AppVerName={#AppName} {#AppVersion}
