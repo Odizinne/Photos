@@ -1,0 +1,513 @@
+import QtQuick
+import QtQuick.Controls.Universal
+import QtQuick.Controls.impl
+import QtQuick.Layouts
+import QtQuick.Dialogs
+import Odizinne.Photos
+
+ApplicationWindow {
+    id: window
+    visible: true
+    width: 1000
+    height: 700
+    title: "Photos"
+    Universal.theme: Universal.System
+    Universal.accent: palette.highlight
+
+    Shortcut {
+        sequence: "Esc"
+        enabled: window.visibility === Window.FullScreen
+        onActivated: window.toggleFullscreen()
+    }
+
+    Shortcut {
+        sequence: "F11"
+        onActivated: window.toggleFullscreen()
+    }
+
+    onClosing: function(close) {
+        if (ImageLoader.hasPendingOperations()) {
+            close.accepted = false // Don't close yet
+            saveDialog.open()
+        }
+    }
+
+    Component.onCompleted: {
+        var initialPath = ImageLoader.getInitialImagePath()
+        if (initialPath !== "") {
+            Common.loadImage(initialPath)
+        }
+    }
+
+    Connections {
+        target: ImageLoader
+
+        function onImageRotationComplete(filePath, success) {
+            if (success && filePath === Common.currentImagePath) {
+                Common.imageFileSize = ImageLoader.getFileSize(Common.currentImagePath)
+            } else if (!success) {
+                console.log("Failed to rotate image")
+            }
+        }
+
+        function onAllOperationsComplete() {
+            if (saveDialog.opened) {
+                saveDialog.close()
+                Qt.quit()
+            }
+        }
+    }
+
+    Dialog {
+        id: saveDialog
+        title: "Saving changes"
+        modal: true
+        anchors.centerIn: parent
+        closePolicy: Popup.NoAutoClose
+
+        Column {
+            spacing: 20
+
+            Label {
+                text: "Please wait while changes are being saved..."
+                anchors.horizontalCenter: parent.horizontalCenter
+            }
+
+            BusyIndicator {
+                running: true
+                anchors.horizontalCenter: parent.horizontalCenter
+            }
+        }
+    }
+
+    Dialog {
+        id: deleteConfirmDialog
+        title: "Delete Image"
+        modal: true
+        anchors.centerIn: parent
+
+        Column {
+            spacing: 20
+            width: 300
+
+            Label {
+                text: "Are you sure you want to delete this image?"
+                wrapMode: Text.WordWrap
+                width: parent.width
+            }
+
+            Label {
+                text: Common.currentImagePath !== "" ? Common.getFileName(Common.currentImagePath) : ""
+                font.bold: true
+                wrapMode: Text.WordWrap
+                width: parent.width
+            }
+
+            Label {
+                text: "This will move the file to the recycle bin."
+                font.pointSize: 9
+                opacity: 0.7
+                wrapMode: Text.WordWrap
+                width: parent.width
+            }
+
+            Row {
+                spacing: 10
+                anchors.right: parent.right
+
+                Button {
+                    text: "Cancel"
+                    onClicked: deleteConfirmDialog.close()
+                }
+
+                Button {
+                    text: "Delete"
+                    highlighted: true
+                    onClicked: {
+                        deleteConfirmDialog.close()
+                        window.deleteCurrentImage()
+                    }
+                }
+            }
+        }
+    }
+
+    header: ToolBar {
+        height: 40
+        background: Rectangle {
+            implicitHeight: 48
+            color: Universal.background
+        }
+
+        Button {
+            id: openButton
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
+            highlighted: true
+            height: 40
+            text: "Open image"
+            onClicked: fileDialog.open()
+        }
+
+        Row {
+            anchors.centerIn: parent
+            spacing: 0
+
+            ToolButton {
+                icon.source: "qrc:/icons/delete.svg"
+                width: 40
+                height: 40
+                enabled: Common.currentImagePath !== ""
+                flat: true
+                onClicked: deleteConfirmDialog.open()
+            }
+            ToolButton {
+                icon.source: "qrc:/icons/rotate_left.svg"
+                width: 40
+                height: 40
+                enabled: Common.currentImagePath !== ""
+                flat: true
+                onClicked: window.rotateImage(-90)
+            }
+            ToolButton {
+                icon.source: "qrc:/icons/rotate_right.svg"
+                width: 40
+                height: 40
+                enabled: Common.currentImagePath !== ""
+                flat: true
+                onClicked: window.rotateImage(90)
+            }
+        }
+
+        Label {
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.rightMargin: 10
+            text: Common.currentImagePath !== "" ? Common.getFileName(Common.currentImagePath) : ""
+            width: Math.min(300, implicitWidth)
+            elide: Text.ElideMiddle
+        }
+    }
+
+    Flickable {
+        id: imageFlickable
+        anchors.fill: parent
+        contentWidth: imageContainer.width
+        contentHeight: imageContainer.height
+        clip: true
+        boundsBehavior: Flickable.StopAtBounds
+
+        property real minScale: 0.1
+        property real maxScale: 8.0
+        property real imageRotation: 0
+
+        onWidthChanged: updateMinScale()
+        onHeightChanged: updateMinScale()
+
+        function updateMinScale() {
+            if (displayImage.implicitWidth > 0 && displayImage.implicitHeight > 0) {
+                var imgWidth = displayImage.implicitWidth
+                var imgHeight = displayImage.implicitHeight
+
+                if (imageRotation % 180 !== 0) {
+                    var temp = imgWidth
+                    imgWidth = imgHeight
+                    imgHeight = temp
+                }
+
+                var scaleX = width / imgWidth
+                var scaleY = height / imgHeight
+                var fitScale = Math.min(scaleX, scaleY)
+                var newMinScale = Math.max(fitScale, 0.1)
+
+                var oldMinScale = minScale
+                var wasAtMinimum = imageContainer.scale <= (oldMinScale * 1.05)
+
+                minScale = newMinScale
+
+                if (wasAtMinimum || imageContainer.scale < newMinScale) {
+                    imageContainer.scale = newMinScale
+                }
+
+                if (zoomSlider) {
+                    zoomSlider.from = newMinScale
+                    zoomSlider.value = imageContainer.scale
+                }
+            }
+        }
+
+        Item {
+            id: imageContainer
+            anchors.centerIn: parent
+            scale: 1.0
+            width: Math.max(displayImage.implicitWidth * scale, imageFlickable.width)
+            height: Math.max(displayImage.implicitHeight * scale, imageFlickable.height)
+
+            Behavior on scale {
+                NumberAnimation {
+                    duration: 200
+                    easing.type: Easing.OutCubic
+                }
+            }
+
+            Image {
+                id: displayImage
+                anchors.centerIn: parent
+                source: Common.currentImagePath
+                fillMode: Image.PreserveAspectFit
+                rotation: imageFlickable.imageRotation
+
+                Behavior on rotation {
+                    NumberAnimation {
+                        duration: 300
+                        easing.type: Easing.OutCubic
+                    }
+                }
+
+                onStatusChanged: {
+                    if (status === Image.Ready) {
+                        Common.imageWidth = implicitWidth
+                        Common.imageHeight = implicitHeight
+
+                        imageFlickable.imageRotation = 0
+
+                        imageFlickable.updateMinScale()
+
+                        imageFlickable.fitToWindow()
+                        window.title = Common.getFileName(Common.currentImagePath) + " - Image Viewer"
+                    } else if (status === Image.Error) {
+                        console.log("Error loading image:", Common.currentImagePath)
+                        window.title = "Image Viewer - Error loading image"
+                        imageFlickable.minScale = 0.1
+                        imageFlickable.imageRotation = 0
+                    }
+                }
+            }
+        }
+
+        Label {
+            anchors.centerIn: parent
+            text: "Load an image to get started"
+            opacity: 0.7
+            visible: Common.currentImagePath === ""
+            font.pointSize: 16
+        }
+
+        WheelHandler {
+            acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+
+            onWheel: function(event) {
+                var scaleFactor = event.angleDelta.y > 0 ? 1.2 : 0.8
+                var newScale = imageContainer.scale * scaleFactor
+
+                if (newScale >= imageFlickable.minScale && newScale <= imageFlickable.maxScale) {
+                    imageContainer.scale = newScale
+                    // Update slider to match
+                    zoomSlider.value = newScale
+                }
+            }
+        }
+
+        function fitToWindow() {
+            if (displayImage.implicitWidth === 0 || displayImage.implicitHeight === 0)
+                return
+
+            var imgWidth = displayImage.implicitWidth
+            var imgHeight = displayImage.implicitHeight
+
+            if (imageRotation % 180 !== 0) {
+                var temp = imgWidth
+                imgWidth = imgHeight
+                imgHeight = temp
+            }
+
+            var scaleX = width / imgWidth
+            var scaleY = height / imgHeight
+            var newScale = Math.min(scaleX, scaleY, 1.0)
+
+            imageContainer.scale = newScale
+            if (zoomSlider) {
+                zoomSlider.value = newScale
+            }
+        }
+    }
+
+    footer: ToolBar {
+        visible: Common.currentImagePath !== ""
+        //background: Rectangle {
+        //    implicitHeight: 48
+        //    color: Universal.background
+        //}
+        RowLayout {
+            anchors.fill: parent
+            anchors.leftMargin: 10
+
+            IconLabel {
+                icon.source: "qrc:/icons/res.svg"
+                icon.width: 16
+                icon.height: 16
+                icon.color: Universal.foreground
+                color: Universal.foreground
+                spacing: 6
+                opacity: 0.5
+                text: Common.currentImagePath !== "" ?
+                      "Resolution: " + Math.round(Common.imageWidth) + " × " + Math.round(Common.imageHeight) :
+                      "No image loaded"
+            }
+
+            ToolSeparator {}
+
+            IconLabel {
+                icon.source: "qrc:/icons/disk.svg"
+                icon.width: 13
+                icon.height: 13
+                icon.color: Universal.foreground
+                color: Universal.foreground
+                spacing: 6
+                opacity: 0.5
+                text: Common.currentImagePath !== "" ?
+                      "Size: " + Common.formatFileSize(Common.imageFileSize) :
+                      ""
+            }
+
+            ToolSeparator {}
+
+            Label {
+                text: Common.currentImagePath !== "" && imageFlickable.imageRotation !== 0 ?
+                      "Rotation: " + Math.round(imageFlickable.imageRotation) + "°" :
+                      ""
+                visible: text !== ""
+            }
+
+            Item { Layout.fillWidth: true }
+
+            ToolButton {
+                icon.source: "qrc:/icons/fit_screen.svg"
+                Layout.preferredWidth: height
+                onClicked: imageFlickable.fitToWindow()
+                enabled: Common.currentImagePath !== ""
+                ToolTip.visible: hovered
+                ToolTip.text: "Fit to window"
+            }
+
+            ToolButton {
+                icon.source: "qrc:/icons/zoom_out.svg"
+                Layout.preferredWidth: height
+                onClicked: {
+                    var newScale = imageContainer.scale * 0.9
+                    if (newScale >= imageFlickable.minScale) {
+                        imageContainer.scale = newScale
+                        zoomSlider.value = newScale
+                    }
+                }
+                enabled: Common.currentImagePath !== "" && imageContainer.scale > imageFlickable.minScale
+                ToolTip.visible: hovered
+                ToolTip.text: "Zoom out"
+            }
+
+            Slider {
+                id: zoomSlider
+                Layout.preferredWidth: 150
+                visible: Common.currentImagePath !== ""
+
+                from: imageFlickable.minScale
+                to: imageFlickable.maxScale
+                value: imageContainer.scale
+
+                onValueChanged: {
+                    if (Math.abs(value - imageContainer.scale) > 0.01) {
+                        imageContainer.scale = value
+                    }
+                }
+            }
+
+            ToolButton {
+                icon.source: "qrc:/icons/zoom_in.svg"
+                Layout.preferredWidth: height
+                onClicked: {
+                    var newScale = imageContainer.scale * 1.1
+                    if (newScale <= imageFlickable.maxScale) {
+                        imageContainer.scale = newScale
+                        zoomSlider.value = newScale
+                    }
+                }
+                enabled: Common.currentImagePath !== "" && imageContainer.scale < imageFlickable.maxScale
+                ToolTip.visible: hovered
+                ToolTip.text: "Zoom in"
+            }
+
+            Label {
+                text: Common.currentImagePath !== "" ?
+                      Math.round(imageContainer.scale * 100) + "%" :
+                      ""
+            }
+
+            ToolButton {
+                icon.source: "qrc:/icons/fullscreen.svg"
+                Layout.preferredWidth: height
+                onClicked: window.toggleFullscreen()
+                enabled: Common.currentImagePath !== ""
+                ToolTip.visible: hovered
+                ToolTip.text: window.visibility === Window.FullScreen ? "Exit fullscreen" : "Enter fullscreen"
+            }
+        }
+    }
+
+    FileDialog {
+        id: fileDialog
+        title: "Open Image"
+        fileMode: FileDialog.OpenFile
+        nameFilters: [
+            "Image files (*.jpg *.jpeg *.png *.gif *.bmp *.tiff *.tif *.webp)",
+            "JPEG files (*.jpg *.jpeg)",
+            "PNG files (*.png)",
+            "All files (*)"
+        ]
+
+        onAccepted: {
+            Common.loadImage(selectedFile)
+        }
+    }
+
+    function toggleFullscreen() {
+        if (window.visibility === Window.FullScreen) {
+            window.showNormal()
+            header.visible = true
+            footer.visible = true
+        } else {
+            window.showFullScreen()
+            header.visible = false
+            footer.visible = false
+        }
+    }
+
+    function deleteCurrentImage() {
+        if (Common.currentImagePath !== "") {
+            var success = ImageLoader.deleteImage(Common.currentImagePath)
+
+            if (success) {
+                Common.currentImagePath = ""
+                Common.imageFileSize = 0
+                Common.imageWidth = 0
+                Common.imageHeight = 0
+                window.title = "Image Viewer"
+
+                imageFlickable.imageRotation = 0
+                imageFlickable.minScale = 0.1
+                imageContainer.scale = 1.0
+
+                console.log("Image deleted successfully")
+            } else {
+                console.log("Failed to delete image")
+            }
+        }
+    }
+
+    function rotateImage(angle) {
+        if (Common.currentImagePath !== "") {
+            imageFlickable.imageRotation = (imageFlickable.imageRotation + angle + 360) % 360
+            imageFlickable.fitToWindow()
+            ImageLoader.rotateAndSaveImageAsync(Common.currentImagePath, angle)
+        }
+    }
+}

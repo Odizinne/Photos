@@ -1,0 +1,13 @@
+<RCC>
+    <qresource prefix="/icons">
+        <file>rotate_left.svg</file>
+        <file>rotate_right.svg</file>
+        <file>disk.svg</file>
+        <file>delete.svg</file>
+        <file>fullscreen.svg</file>
+        <file>zoom_in.svg</file>
+        <file>zoom_out.svg</file>
+        <file>res.svg</file>
+        <file>fit.svg</file>
+    </qresource>
+</RCC>
