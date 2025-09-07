@@ -4,6 +4,7 @@ import QtQuick.Controls.impl
 import QtQuick.Layouts
 import QtQuick.Dialogs
 import Odizinne.Photos
+import QtQuick.Effects
 
 ApplicationWindow {
     id: window
@@ -349,7 +350,7 @@ ApplicationWindow {
                 onEntered: function(drag) {
                     // Check if the dragged item contains files
                     if (drag.hasUrls) {
-                        var supportedFormats = [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".tif", ".webp"]
+                        var supportedFormats = [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".tif", ".webp", ".svg"]
                         var hasImageFile = false
 
                         for (var i = 0; i < drag.urls.length; i++) {
@@ -373,7 +374,7 @@ ApplicationWindow {
 
                 onDropped: function(drop) {
                     if (drop.hasUrls && drop.urls.length > 0) {
-                        var supportedFormats = [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".tif", ".webp"]
+                        var supportedFormats = [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".tif", ".webp", ".svg"]
 
                         // Find the first supported image file
                         for (var i = 0; i < drop.urls.length; i++) {
@@ -428,36 +429,29 @@ ApplicationWindow {
         Item {
             id: imageContainer
             anchors.centerIn: parent
-            scale: 1.0
-            // Keep original dimensions - rotation is visual only
             width: displayImage.implicitWidth
             height: displayImage.implicitHeight
 
-            Behavior on scale {
-                enabled: Common.enableScaleAnimation
-                NumberAnimation {
-                    duration: 200
-                    easing.type: Easing.OutCubic
-                }
-            }
-
             Image {
                 id: displayImage
-                anchors.centerIn: parent
+                anchors.fill: parent
                 source: Common.currentImagePath
                 fillMode: Image.PreserveAspectFit
                 rotation: imageFlickable.imageRotation
+                layer.enabled: Common.isSvgFile(Common.currentImagePath)
+                layer.effect: MultiEffect {
+                    anchors.fill: parent
+                    colorization: 1
+                    colorizationColor: Universal.theme === Universal.Dark ? "white" : "black"
+                }
 
                 onStatusChanged: {
                     if (status === Image.Ready) {
                         // Disable animations before any scale changes
-                        window.Common.enableScaleAnimation = false
-
+                        Common.enableScaleAnimation = false
                         Common.imageWidth = implicitWidth
                         Common.imageHeight = implicitHeight
-
                         imageFlickable.imageRotation = 0
-
                         // Ensure proper initialization sequence
                         Qt.callLater(function() {
                             imageFlickable.updateMinScale()
@@ -465,7 +459,6 @@ ApplicationWindow {
                             // Re-enable scale animations after initial setup
                             window.Common.enableScaleAnimation = true
                         })
-
                         window.title = Common.getFileName(Common.currentImagePath) + " - Image Viewer"
                     } else if (status === Image.Error) {
                         console.log("Error loading image:", Common.currentImagePath)
@@ -648,9 +641,10 @@ ApplicationWindow {
         title: "Open Image"
         fileMode: FileDialog.OpenFile
         nameFilters: [
-            "Image files (*.jpg *.jpeg *.png *.gif *.bmp *.tiff *.tif *.webp)",
+            "Image files (*.jpg *.jpeg *.png *.gif *.bmp *.tiff *.tif *.webp *.svg)",
             "JPEG files (*.jpg *.jpeg)",
             "PNG files (*.png)",
+            "SVG files (*.svg)",
             "All files (*)"
         ]
 

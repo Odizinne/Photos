@@ -83,6 +83,7 @@ Root: HKCU; Subkey: "Software\Classes\.bmp\OpenWithProgids"; ValueType: string; 
 Root: HKCU; Subkey: "Software\Classes\.tiff\OpenWithProgids"; ValueType: string; ValueName: "Photos.tiff"; ValueData: ""; Flags: uninsdeletevalue; Tasks: registerfiles
 Root: HKCU; Subkey: "Software\Classes\.tif\OpenWithProgids"; ValueType: string; ValueName: "Photos.tif"; ValueData: ""; Flags: uninsdeletevalue; Tasks: registerfiles
 Root: HKCU; Subkey: "Software\Classes\.webp\OpenWithProgids"; ValueType: string; ValueName: "Photos.webp"; ValueData: ""; Flags: uninsdeletevalue; Tasks: registerfiles
+Root: HKCU; Subkey: "Software\Classes\.svg\OpenWithProgids"; ValueType: string; ValueName: "Photos.svg"; ValueData: ""; Flags: uninsdeletevalue; Tasks: registerfiles
 
 ; Create ProgID entries for each format
 Root: HKCU; Subkey: "Software\Classes\Photos.jpg"; ValueType: string; ValueData: "JPEG Image"; Flags: uninsdeletekey; Tasks: registerfiles
@@ -116,6 +117,10 @@ Root: HKCU; Subkey: "Software\Classes\Photos.tif\shell\open\command"; ValueType:
 Root: HKCU; Subkey: "Software\Classes\Photos.webp"; ValueType: string; ValueData: "WebP Image"; Flags: uninsdeletekey; Tasks: registerfiles
 Root: HKCU; Subkey: "Software\Classes\Photos.webp\DefaultIcon"; ValueType: string; ValueData: """{app}\bin\Photos.exe"",0"; Flags: uninsdeletekey; Tasks: registerfiles
 Root: HKCU; Subkey: "Software\Classes\Photos.webp\shell\open\command"; ValueType: string; ValueData: """{app}\bin\Photos.exe"" ""%1"""; Flags: uninsdeletekey; Tasks: registerfiles
+
+Root: HKCU; Subkey: "Software\Classes\Photos.svg"; ValueType: string; ValueData: "SVG Image"; Flags: uninsdeletekey; Tasks: registerfiles
+Root: HKCU; Subkey: "Software\Classes\Photos.svg\DefaultIcon"; ValueType: string; ValueData: """{app}\bin\Photos.exe"",0"; Flags: uninsdeletekey; Tasks: registerfiles
+Root: HKCU; Subkey: "Software\Classes\Photos.svg\shell\open\command"; ValueType: string; ValueData: """{app}\bin\Photos.exe"" ""%1"""; Flags: uninsdeletekey; Tasks: registerfiles
 
 [Icons]
 Name: "{group}\{#AppName}"; Filename: "{app}\bin\{#AppExeName}"; IconFilename: "{app}\bin\{#AppExeName}"

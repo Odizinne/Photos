@@ -35,4 +35,10 @@ Item {
 
         return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i]
     }
+
+    function isSvgFile(filePath) {
+        if (filePath === "") return false
+        var path = filePath.toString().toLowerCase()
+        return path.endsWith(".svg")
+    }
 }

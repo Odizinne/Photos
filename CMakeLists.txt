@@ -10,7 +10,7 @@ set(CMAKE_AUTORCC ON)
 set(QT_QML_GENERATE_QMLLS_INI ON)
 set(CMAKE_DISABLE_FIND_PACKAGE_WrapVulkanHeaders TRUE)
 
-find_package(Qt6 REQUIRED COMPONENTS Quick)
+find_package(Qt6 REQUIRED COMPONENTS Quick Svg)
 
 qt_standard_project_setup(REQUIRES 6.8)
 
@@ -65,7 +65,7 @@ set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES
 )
 
 target_link_libraries(${CMAKE_PROJECT_NAME}
-    PRIVATE Qt6::Quick
+    PRIVATE Qt6::Quick Qt6::Svg
 )
 
 include(GNUInstallDirs)
