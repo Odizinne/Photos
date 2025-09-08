@@ -20,18 +20,13 @@ jobs:
         id: cmake_version
         uses: DarwinInnovation/cmake-project-version-action@v1.0
 
-      - name: Set up Visual Studio shell
-        uses: egor-tensin/vs-shell@v2
-        with:
-          arch: x64
-
       - name: Install Qt
         id: qt
         uses: jurplel/install-qt-action@v4
         with:
           version: ${{ env.QT_VERSION }}
-          arch: 'win64_mingw_64'
-          modules: 'qtmultimedia'
+          arch: 'win64_mingw'
+          tools: 'tools_mingw1310'
           add-tools-to-path: true
           cache: true
 
@@ -40,7 +35,7 @@ jobs:
         run: |
           mkdir -p build
           cd build
-          cmake ..
+          cmake .. -G "MinGW Makefiles"
           cmake --build . --config Release
           cmake --install . --config Release
 
