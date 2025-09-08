@@ -223,6 +223,12 @@ ApplicationWindow {
         }
     }
 
+    Rectangle {
+        color: Universal.baseLowColor
+        anchors.fill: parent
+        visible: Common.currentImagePath !== ""
+    }
+
     Flickable {
         id: imageFlickable
         anchors.fill: parent
