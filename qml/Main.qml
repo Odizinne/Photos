@@ -1,5 +1,5 @@
 import QtQuick
-import QtQuick.Controls.Universal
+import QtQuick.Controls.FluentWinUI3
 import QtQuick.Controls.impl
 import QtQuick.Layouts
 import QtQuick.Dialogs
@@ -14,8 +14,6 @@ ApplicationWindow {
     minimumWidth: 1000
     minimumHeight: 700
     title: "Photos"
-    Universal.theme: Universal.System
-    Universal.accent: palette.highlight
 
     onWidthChanged: {
         Common.enableScaleAnimation = false
@@ -166,18 +164,21 @@ ApplicationWindow {
 
     header: ToolBar {
         height: 40
-        background: Rectangle {
-            implicitHeight: 48
-            color: Universal.background
-        }
-
+        leftPadding: 0
+        rightPadding: 0
+        topPadding: 0
+        bottomPadding: 0
+        topInset: 0
+        leftInset: 0
+        rightInset: 0
+        bottomInset: 0
         ToolButton {
             id: openButton
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
             height: 40
             icon.source: "qrc:/icons/file.svg"
-            Universal.foreground: Universal.accent
+            icon.color: palette.accent
             text: "Open image"
             onClicked: fileDialog.open()
         }
@@ -223,11 +224,11 @@ ApplicationWindow {
         }
     }
 
-    Rectangle {
-        color: Universal.baseLowColor
-        anchors.fill: parent
-        visible: Common.currentImagePath !== ""
-    }
+    //Rectangle {
+    //    color: Universal.baseLowColor
+    //    anchors.fill: parent
+    //    visible: Common.currentImagePath !== ""
+    //}
 
     Flickable {
         id: imageFlickable
@@ -438,6 +439,14 @@ ApplicationWindow {
             width: displayImage.implicitWidth
             height: displayImage.implicitHeight
 
+            Behavior on scale {
+                enabled: Common.enableScaleAnimation
+                NumberAnimation {
+                    duration: 200
+                    easing.type: Easing.OutQuad
+                }
+            }
+
             Image {
                 id: displayImage
                 anchors.fill: parent
@@ -446,9 +455,12 @@ ApplicationWindow {
                 rotation: imageFlickable.imageRotation
                 layer.enabled: Common.isSvgFile(Common.currentImagePath)
                 layer.effect: MultiEffect {
-                    anchors.fill: parent
-                    colorization: 1
-                    colorizationColor: Universal.theme === Universal.Dark ? "white" : "black"
+                    colorization: 1.0
+                    colorizationColor: Common.isDarkMode ? "white" : "black"
+                    source: displayImage
+                    autoPaddingEnabled: false
+                    saturation: -1.0
+                    brightness: 1.0
                 }
 
                 onStatusChanged: {
@@ -488,14 +500,14 @@ ApplicationWindow {
             acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
 
             onWheel: function(event) {
-                var scaleFactor = event.angleDelta.y > 0 ? 1.2 : 0.8
+                var scaleFactor = event.angleDelta.y > 0 ? 1.15 : 0.87
                 var newScale = imageContainer.scale * scaleFactor
 
-                if (newScale >= imageFlickable.minScale && newScale <= imageFlickable.maxScale) {
-                    imageContainer.scale = newScale
-                    // Update slider to match
-                    zoomSlider.value = newScale
-                }
+                // Clamp the scale to valid range instead of rejecting
+                newScale = Math.max(imageFlickable.minScale, Math.min(imageFlickable.maxScale, newScale))
+
+                imageContainer.scale = newScale
+                zoomSlider.value = newScale
             }
         }
 
@@ -526,6 +538,10 @@ ApplicationWindow {
 
     footer: ToolBar {
         visible: Common.currentImagePath !== ""
+        background: Rectangle {
+            color: palette.base
+        }
+
         RowLayout {
             anchors.fill: parent
             anchors.leftMargin: 10
@@ -534,8 +550,8 @@ ApplicationWindow {
                 icon.source: "qrc:/icons/res.svg"
                 icon.width: 16
                 icon.height: 16
-                icon.color: Universal.foreground
-                color: Universal.foreground
+                icon.color: palette.windowText
+                color: palette.windowText
                 spacing: 6
                 opacity: 0.5
                 text: Common.currentImagePath !== "" ?
@@ -551,8 +567,8 @@ ApplicationWindow {
                 icon.source: "qrc:/icons/disk.svg"
                 icon.width: 13
                 icon.height: 13
-                icon.color: Universal.foreground
-                color: Universal.foreground
+                icon.color: palette.windowText
+                color: palette.windowText
                 spacing: 6
                 opacity: 0.5
                 text: Common.currentImagePath !== "" ?
@@ -564,7 +580,8 @@ ApplicationWindow {
 
             ToolButton {
                 icon.source: "qrc:/icons/fit.svg"
-                Layout.preferredWidth: height
+                Layout.preferredWidth: 40
+                Layout.preferredHeight: 40
                 onClicked: imageFlickable.fitToWindow()
                 enabled: Common.currentImagePath !== ""
                 ToolTip.visible: hovered
@@ -573,7 +590,8 @@ ApplicationWindow {
 
             ToolButton {
                 icon.source: "qrc:/icons/zoom_out.svg"
-                Layout.preferredWidth: height
+                Layout.preferredWidth: 40
+                Layout.preferredHeight: 40
                 onClicked: {
                     var newScale = imageContainer.scale * 0.9
                     if (newScale >= imageFlickable.minScale) {
@@ -604,7 +622,8 @@ ApplicationWindow {
 
             ToolButton {
                 icon.source: "qrc:/icons/zoom_in.svg"
-                Layout.preferredWidth: height
+                Layout.preferredWidth: 40
+                Layout.preferredHeight: 40
                 onClicked: {
                     var newScale = imageContainer.scale * 1.1
                     if (newScale <= imageFlickable.maxScale) {
@@ -633,7 +652,8 @@ ApplicationWindow {
 
             ToolButton {
                 icon.source: "qrc:/icons/fullscreen.svg"
-                Layout.preferredWidth: height
+                Layout.preferredWidth: 40
+                Layout.preferredHeight: 40
                 onClicked: window.toggleFullscreen()
                 enabled: Common.currentImagePath !== ""
                 ToolTip.visible: hovered

@@ -8,6 +8,7 @@ Item {
     property real imageHeight: 0
     property int imageFileSize: 0
     property bool enableScaleAnimation: false
+    property bool isDarkMode: Qt.application.styleHints.colorScheme === Qt.Dark
 
     function loadImage(imagePath) {
         currentImagePath = imagePath
