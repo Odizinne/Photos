@@ -214,7 +214,8 @@ ApplicationWindow {
         }
 
         Label {
-            anchors.right: parent.right
+            id: filenameLabel
+            anchors.right: aboutButton.left
             anchors.verticalCenter: parent.verticalCenter
             anchors.rightMargin: 10
             text: Common.currentImagePath !== "" ? Common.getFileName(Common.currentImagePath) : ""
@@ -222,13 +223,22 @@ ApplicationWindow {
             elide: Text.ElideMiddle
             opacity: 0.5
         }
+
+        ToolButton {
+            id: aboutButton
+            width: 40
+            height: 40
+            icon.source: "qrc:/icons/info.svg"
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.right: parent.right
+            onClicked: aboutDialog.open()
+        }
     }
 
-    //Rectangle {
-    //    color: Universal.baseLowColor
-    //    anchors.fill: parent
-    //    visible: Common.currentImagePath !== ""
-    //}
+    AboutDialog {
+        id: aboutDialog
+        anchors.centerIn: parent
+    }
 
     Flickable {
         id: imageFlickable

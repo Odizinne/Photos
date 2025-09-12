@@ -16,11 +16,33 @@ qt_standard_project_setup(REQUIRES 6.8)
 
 set(HEADERS
     include/imageloader.h
+    include/versionhelper.h
 )
 
 set(SOURCES
     src/imageloader.cpp
+    src/versionhelper.cpp
     src/main.cpp
+)
+
+find_package(Git QUIET)
+if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
+    execute_process(
+        COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE GIT_COMMIT_HASH
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+    )
+else()
+    set(GIT_COMMIT_HASH "unknown")
+endif()
+
+string(TIMESTAMP BUILD_TIMESTAMP "%Y-%m-%d %H:%M:%S UTC" UTC)
+
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/version.h.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/version.h"
 )
 
 set(APP_ICON_PATH "${CMAKE_CURRENT_SOURCE_DIR}/resources/icons/icon.ico")
@@ -29,7 +51,6 @@ configure_file(
     "${CMAKE_CURRENT_BINARY_DIR}/windows_metadata.rc"
     @ONLY
 )
-
 
 qt_add_executable(${CMAKE_PROJECT_NAME}
     ${SOURCES}
@@ -40,10 +61,12 @@ qt_add_executable(${CMAKE_PROJECT_NAME}
 
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_BINARY_DIR}
 )
 
 set(QML_FILES
     qml/Main.qml
+    qml/AboutDialog.qml
 )
 
 set(QML_SINGLETONS

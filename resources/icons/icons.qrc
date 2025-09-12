@@ -10,6 +10,7 @@
         <file>res.svg</file>
         <file>fit.svg</file>
         <file>file.svg</file>
+        <file>info.svg</file>
         <file>icon.png</file>
     </qresource>
 </RCC>
